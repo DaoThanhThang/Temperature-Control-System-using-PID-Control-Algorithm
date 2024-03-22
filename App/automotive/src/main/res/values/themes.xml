@@ -1,0 +1,4 @@
+<resources>
+
+    <style name="Theme.TempControl" parent="android:Theme.Material.Light.DarkActionBar" />
+</resources>
