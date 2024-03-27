@@ -1,25 +1,31 @@
- /**
- * @brief Simple Temperature using PID controller with Arduino.
+/**
+ * @file main.cpp
+ * @brief Simple Temperature Controller using PID with Arduino.
  * @author Dao Thanh Thang
- * @email: thang.techcareers@gmail.com
+ * @email thang.techcareers@gmail.com
  */
+
 #include <Arduino.h>
 #include "PID.h"
-// Define pin assignments
-#define PIN_SENSOR A0
-#define PIN_ACTUATOR 9
+
 // Define constants
-#define DIRECT 1  // Forward control direction
-#define REVERSE -1 // Reverse control direction
-#define AUTOMATIC 1 // Automatic mode for PID controller
-#define MANUAL 0 // Automatic mode for PID controller
+#define PIN_SENSOR A0
+#define PIN_ADJUST A1
+#define PIN_ACTUATOR 9 ///PWM 
+#define DIRECT 1        ///< Forward control direction
+#define REVERSE -1      ///< Reverse control direction
+#define AUTOMATIC 1     ///< Automatic mode for PID controller
+#define MANUAL 0        ///< Manual mode for PID controller
+
 // Global variables
-double setpoint = 25.0; // Desired temperature
+double setpoint = 25.0; ///< Desired temperature
 double input, output;
-double Kp = 1.2, Ki = 1, Kd = 0.1; // PID tuning parameters
+double Kp = 1.2, Ki = 1, Kd = 0.1; ///< PID tuning parameters
+int pwmValue;
 
 // Create PID controller object
 PID pid(&input, &output, &setpoint, Kp, Ki, Kd, DIRECT);
+
 /**
  * @brief Read data from serial port and update the setpoint temperature.
  * 
@@ -53,6 +59,7 @@ void readSerialAndUpdateSetpoint() {
     }
   }
 }
+
 /**
  * @brief Read temperature from the sensor and compute PID control.
  * 
@@ -62,16 +69,18 @@ void readSerialAndUpdateSetpoint() {
 void readTemperatureAndComputePID() {
   // Read temperature from the sensor
   input = analogRead(PIN_SENSOR);
+  pwmValue = map(input, 0, 1023, 0, 255);
   input = input * 0.48828125; 
+  
   // Compute PID control
   pid.Compute(); 
 }
-/**
- * @brief Write temperature and control output to the serial port.
- * 
- * This function prints the current temperature and control output to the serial port.
- * It is used for monitoring and debugging purposes.
- */
+
+void setup() {
+  Serial.begin(9600);
+  pid.SetMode(AUTOMATIC); ///< Switch to automatic mode
+}
+
 /**
  * @brief Main loop function.
  * 
@@ -79,14 +88,22 @@ void readTemperatureAndComputePID() {
  * It sequentially executes the following tasks:
  * - Read data from serial port and update the setpoint temperature.
  * - Read temperature from the sensor and compute PID control.
- * - Write temperature and control output to the serial port.
- * It also includes a delay of 1 second between iterations to control the loop frequency.
+ * - Control actuator based on temperature deviation from setpoint.
+ * - Include a delay of 1 second between iterations to control the loop frequency.
  */
 void loop() {
   // Read data from serial port and update the setpoint temperature
   readSerialAndUpdateSetpoint();
   // Read temperature from the sensor and compute PID control
   readTemperatureAndComputePID(); 
+  // Control actuator based on temperature deviation from setpoint
+  if (input > setpoint) {
+    // Open the actuator (assuming it's a digital output)
+    digitalWrite(PIN_ACTUATOR, HIGH);
+  } else {
+    // Close the actuator
+    digitalWrite(PIN_ACTUATOR, LOW);
+  }
   // Delay for 1 second
   delay(1000);
 }
